@@ -1,0 +1,288 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.1" halcon_version="12.0.3">
+<procedure name="main">
+<interface/>
+<body>
+<c>** Description : </c>
+<c>*</c>
+<c>* This example program shows how to segment an RGB image with a k-NN classifier.</c>
+<c>* </c>
+<c>* The classifier is trained with four different colors of "patras" image (boat on the sea image in Halcon's example image) as a "Label" or "Class" </c>
+<c>* which include</c>
+<c>*              Class 1 -&gt; "Sea water" color class     (navy-blue alike)</c>
+<c>*              Class 2 -&gt; "Deck" color class          (blood-red alike)</c>
+<c>*              Class 3 -&gt; "Boat's wall color class    (white)</c>
+<c>*              Class 4 -&gt; "Boat's chimney color class (black)</c>
+<c>*</c>
+<c></c>
+<c></c>
+<c></c>
+<c>* In this image, the yellow paint at the ship's rail, the green color on the light of the top of the ship, and the door</c>
+<c>* are assigned to be a "rejected" class and it will be label with a yellow color.</c>
+<c>**************************************************************************************************************************************************</c>
+<c></c>
+<c></c>
+<c></c>
+<c>** Script procedure : Setup image and font </c>
+<c></c>
+<c>* For image</c>
+<l>dev_update_off ()</l>
+<l>dev_close_window ()</l>
+<l>dev_open_window (0, 0, 735, 485, 'black', WindowHandle)</l>
+<l>read_image (Image, 'patras')</l>
+<l>get_image_size(Image, Width, Height)</l>
+<l>dev_display (Image)</l>
+<c>* For font</c>
+<l>set_display_font (WindowHandle, 14, 'mono', 'true', 'false')</l>
+<c></c>
+<l>Message := 'Display image'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>**************************************************************************************************************************************************</c>
+<c></c>
+<c></c>
+<c></c>
+<c>** Script procedure : Select and create a region that contain the training sample pixel of the 4 classes + 1 rejected class</c>
+<c></c>
+<l>dev_set_draw ('margin')</l>
+<l>dev_set_colored (6)</l>
+<l>dev_set_line_width (3)</l>
+<l>Color := ['indian red','cornflower blue','white','black','yellow']</l>
+<c></c>
+<c>* for "sea water" class</c>
+<l>gen_rectangle1 (Region_Sea, 10, 10, 120, 270)</l>
+<c>* for "deck" class</c>
+<l>gen_rectangle2 (Region_Deck, [170,400], [350,375], [-0.56,-0.75], [64,104], [26,11])</l>
+<l>union1 (Region_Deck, Region_Deck)</l>
+<c>* for "wall" class</c>
+<l>gen_rectangle1 (Region_Wall, 355, 623, 420, 702)</l>
+<c>* for "chimney" class</c>
+<l>gen_rectangle2 (Region_Chimney, 286, 623, -0.56, 64, 33)</l>
+<c>* for "reject" class</c>
+<l>gen_rectangle2 (Region_Rejection, [193,66,261], [235,332,328], [-0.32,-1.45,-1.51], [33,34,60], [4,3,3])</l>
+<l>union1 (Region_Rejection, Region_Rejection)</l>
+<c></c>
+<l>dev_set_color (Color[0])</l>
+<l>dev_display (Region_Deck)</l>
+<l>dev_set_color (Color[1])</l>
+<l>dev_display (Region_Sea)</l>
+<l>dev_set_color (Color[2])</l>
+<l>dev_display (Region_Wall)</l>
+<l>dev_set_color (Color[3])</l>
+<l>dev_display (Region_Chimney)</l>
+<l>dev_set_color (Color[4])</l>
+<l>dev_display (Region_Rejection)</l>
+<c></c>
+<l>Message := 'Select the region of each color class'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<c>**************************************************************************************************************************************************</c>
+<c></c>
+<c></c>
+<c></c>
+<c>** Script procedure : Extract RGB value of selected region as a feature vectors for data sampling in classifier</c>
+<c></c>
+<c>* Read RGB level of image</c>
+<l>access_channel (Image, Image_R, 1)</l>
+<l>access_channel (Image, Image_G, 2)</l>
+<l>access_channel (Image, Image_B, 3)</l>
+<c></c>
+<c>* Feature for class 1 : Sea</c>
+<l>get_region_points (Region_Sea, Rows, Columns)</l>
+<l>get_grayval (Image_R, Rows, Columns, Grayval_R)</l>
+<l>get_grayval (Image_G, Rows, Columns, Grayval_G)</l>
+<l>get_grayval (Image_B, Rows, Columns, Grayval_B)</l>
+<l>for Index := 0 to |Grayval_R| - 1 by 1</l>
+<l>    FeatureVector_Class_Sea[(Index*3) - 1 + 1] := Grayval_R[Index]</l>
+<l>    FeatureVector_Class_Sea[(Index*3) - 1 + 2] := Grayval_G[Index]</l>
+<l>    FeatureVector_Class_Sea[(Index*3) - 1 + 3] := Grayval_B[Index]</l>
+<l>endfor</l>
+<c>* Feature for class 2 : Deck</c>
+<l>get_region_points (Region_Deck, Rows, Columns)</l>
+<l>get_grayval (Image_R, Rows, Columns, Grayval_R)</l>
+<l>get_grayval (Image_G, Rows, Columns, Grayval_G)</l>
+<l>get_grayval (Image_B, Rows, Columns, Grayval_B)</l>
+<l>for Index := 0 to |Grayval_R| - 1 by 1</l>
+<l>    FeatureVector_Class_Deck[(Index*3) - 1 + 1] := Grayval_R[Index]</l>
+<l>    FeatureVector_Class_Deck[(Index*3) - 1 + 2] := Grayval_G[Index]</l>
+<l>    FeatureVector_Class_Deck[(Index*3) - 1 + 3] := Grayval_B[Index]</l>
+<l>endfor</l>
+<c>* Feature for class 3 : Wall</c>
+<l>get_region_points (Region_Wall, Rows, Columns)</l>
+<l>get_grayval (Image_R, Rows, Columns, Grayval_R)</l>
+<l>get_grayval (Image_G, Rows, Columns, Grayval_G)</l>
+<l>get_grayval (Image_B, Rows, Columns, Grayval_B)</l>
+<l>for Index := 0 to |Grayval_R| - 1 by 1</l>
+<l>    FeatureVector_Class_Wall[(Index*3) - 1 + 1] := Grayval_R[Index]</l>
+<l>    FeatureVector_Class_Wall[(Index*3) - 1 + 2] := Grayval_G[Index]</l>
+<l>    FeatureVector_Class_Wall[(Index*3) - 1 + 3] := Grayval_B[Index]</l>
+<l>endfor</l>
+<c>* Feature for class 4 : Chimney</c>
+<l>get_region_points (Region_Chimney, Rows, Columns)</l>
+<l>get_grayval (Image_R, Rows, Columns, Grayval_R)</l>
+<l>get_grayval (Image_G, Rows, Columns, Grayval_G)</l>
+<l>get_grayval (Image_B, Rows, Columns, Grayval_B)</l>
+<l>for Index := 0 to |Grayval_R| - 1 by 1</l>
+<l>    FeatureVector_Class_Chimney[(Index*3) - 1 + 1] := Grayval_R[Index]</l>
+<l>    FeatureVector_Class_Chimney[(Index*3) - 1 + 2] := Grayval_G[Index]</l>
+<l>    FeatureVector_Class_Chimney[(Index*3) - 1 + 3] := Grayval_B[Index]</l>
+<l>endfor</l>
+<c>* Feature for other class : Rejection</c>
+<l>get_region_points (Region_Rejection, Rows, Columns)</l>
+<l>get_grayval (Image_R, Rows, Columns, Grayval_R)</l>
+<l>get_grayval (Image_G, Rows, Columns, Grayval_G)</l>
+<l>get_grayval (Image_B, Rows, Columns, Grayval_B)</l>
+<l>for Index := 0 to |Grayval_R| - 1 by 1</l>
+<l>    FeatureVector_Class_Rejection[(Index*3) - 1 + 1] := Grayval_R[Index]</l>
+<l>    FeatureVector_Class_Rejection[(Index*3) - 1 + 2] := Grayval_G[Index]</l>
+<l>    FeatureVector_Class_Rejection[(Index*3) - 1 + 3] := Grayval_B[Index]</l>
+<l>endfor</l>
+<c></c>
+<l>Message := 'Feature Extraction at the selected region'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>**************************************************************************************************************************************************</c>
+<c></c>
+<c></c>
+<c></c>
+<c>** Script procedure : Create and train the classifier (k-NN method)</c>
+<c></c>
+<l>Message := 'Create and train a k-NN classifier ...'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<c></c>
+<c>* Create data structure for k-NN classifier</c>
+<c>* Dimension of feature vector = 3 (RGB value) </c>
+<l>featureVectorDim := 3</l>
+<l>create_class_knn (featureVectorDim, KNNHandle)</l>
+<c></c>
+<c>* Set properties of k-NN</c>
+<l>k := 7</l>
+<l>set_params_class_knn (KNNHandle, ['method','k','max_num_classes'], ['classes_distance',5,1])</l>
+<c></c>
+<c>* Add sample feature data to the classifier</c>
+<l>Class_Label := [1, 2, 3, 4, 5]</l>
+<l>add_sample_class_knn (KNNHandle, FeatureVector_Class_Sea,       Class_Label[0])</l>
+<l>add_sample_class_knn (KNNHandle, FeatureVector_Class_Deck,      Class_Label[1])</l>
+<l>add_sample_class_knn (KNNHandle, FeatureVector_Class_Wall,      Class_Label[2])</l>
+<l>add_sample_class_knn (KNNHandle, FeatureVector_Class_Chimney,   Class_Label[3])</l>
+<l>add_sample_class_knn (KNNHandle, FeatureVector_Class_Rejection, Class_Label[4])</l>
+<c></c>
+<c>* Train classifier</c>
+<l>train_class_knn (KNNHandle, [], [])</l>
+<c></c>
+<l>Message := Message + ' ready!'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>**************************************************************************************************************************************************</c>
+<c></c>
+<c></c>
+<c></c>
+<c>** Script procedure : Classification</c>
+<c></c>
+<l>Message := 'Do a color classification to each pixel of the original image...'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<c></c>
+<l>gen_rectangle1    (Region_Full, 0, 0, Height-1, Width-1)</l>
+<l>get_region_points (Region_Full, Rows, Columns)</l>
+<l>get_grayval (Image_R, Rows, Columns, Grayval_R)</l>
+<l>get_grayval (Image_G, Rows, Columns, Grayval_G)</l>
+<l>get_grayval (Image_B, Rows, Columns, Grayval_B)</l>
+<l>for Index := 0 to |Grayval_R| - 1 by 1</l>
+<l>    FeatureVector_Validation[(Index*3) - 1 + 1] := Grayval_R[Index]</l>
+<l>    FeatureVector_Validation[(Index*3) - 1 + 2] := Grayval_G[Index]</l>
+<l>    FeatureVector_Validation[(Index*3) - 1 + 3] := Grayval_B[Index]</l>
+<l>endfor</l>
+<c></c>
+<l>classify_class_knn (KNNHandle, FeatureVector_Validation, Classification_Result, Rating)</l>
+<c></c>
+<l>Message := Message + 'Completed!'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>stop ()</l>
+<c>**************************************************************************************************************************************************</c>
+<c></c>
+<c></c>
+<c></c>
+<c>** Script procedure : Visualize the result of classification</c>
+<c></c>
+<c>* Pixel's color classification result are stored in tuple variable name "Classification_Result", Row and column of the result are in "Rows", "Columns" </c>
+<c>* Region of each classes need to be extracted by this process...</c>
+<l>Index_Class_1 := 0</l>
+<l>Index_Class_2 := 0</l>
+<l>Index_Class_3 := 0</l>
+<l>Index_Class_4 := 0</l>
+<l>Index_Class_5 := 0</l>
+<l>for Index1 := 0 to |Classification_Result| - 1 by 1</l>
+<c></c>
+<l>    if(Classification_Result[Index1] == Class_Label[0])</l>
+<c>        </c>
+<l>        Rows_Classification_Result_Class_1[Index_Class_1] := Rows[Index1] </l>
+<l>        Columns_Classification_Result_Class_1[Index_Class_1] := Columns[Index1]</l>
+<l>        Index_Class_1 := Index_Class_1 + 1</l>
+<c>        </c>
+<l>    elseif(Classification_Result[Index1] == Class_Label[1])</l>
+<c>        </c>
+<l>        Rows_Classification_Result_Class_2[Index_Class_2] := Rows[Index1] </l>
+<l>        Columns_Classification_Result_Class_2[Index_Class_2] := Columns[Index1]</l>
+<l>        Index_Class_2 := Index_Class_2 + 1   </l>
+<c>        </c>
+<l>    elseif(Classification_Result[Index1] == Class_Label[2])</l>
+<c>        </c>
+<l>        Rows_Classification_Result_Class_3[Index_Class_3] := Rows[Index1] </l>
+<l>        Columns_Classification_Result_Class_3[Index_Class_3] := Columns[Index1]</l>
+<l>        Index_Class_3 := Index_Class_3 + 1</l>
+<c>        </c>
+<l>    elseif(Classification_Result[Index1] == Class_Label[3])</l>
+<c>        </c>
+<l>         Rows_Classification_Result_Class_4[Index_Class_4] := Rows[Index1] </l>
+<l>        Columns_Classification_Result_Class_4[Index_Class_4] := Columns[Index1]</l>
+<l>        Index_Class_4 := Index_Class_4 + 1</l>
+<c>        </c>
+<l>    elseif(Classification_Result[Index1] == Class_Label[4]) </l>
+<c>        </c>
+<l>        Rows_Classification_Result_Class_5[Index_Class_5] := Rows[Index1] </l>
+<l>        Columns_Classification_Result_Class_5[Index_Class_5] := Columns[Index1]</l>
+<l>        Index_Class_5 := Index_Class_5 + 1</l>
+<c>        </c>
+<l>    endif</l>
+<l>endfor</l>
+<c></c>
+<l>gen_region_points (Region_Result_Class_1, Rows_Classification_Result_Class_1, Columns_Classification_Result_Class_1)</l>
+<l>gen_region_points (Region_Result_Class_2, Rows_Classification_Result_Class_2, Columns_Classification_Result_Class_2)</l>
+<l>gen_region_points (Region_Result_Class_3, Rows_Classification_Result_Class_3, Columns_Classification_Result_Class_3)</l>
+<l>gen_region_points (Region_Result_Class_4, Rows_Classification_Result_Class_4, Columns_Classification_Result_Class_4)</l>
+<l>gen_region_points (Region_Result_Class_5, Rows_Classification_Result_Class_5, Columns_Classification_Result_Class_5)</l>
+<c></c>
+<c>* Fill the classified regions in the original image and display to compare the result to the original image</c>
+<l>dev_display (Image)</l>
+<l>Message := 'Visualize to classification by painting the region of each resulted class \nwith different color'</l>
+<l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
+<l>disp_continue_message (WindowHandle, 'black', 'true')</l>
+<l>dev_open_window (0, 0, 735, 485, 'black', WindowHandle2)</l>
+<l>dev_display (Image)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color (Color[1])</l>
+<l>dev_display (Region_Result_Class_1)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color (Color[0])</l>
+<l>dev_display (Region_Result_Class_2)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color (Color[2])</l>
+<l>dev_display (Region_Result_Class_3)</l>
+<l>dev_set_draw ('fill')</l>
+<l>dev_set_color (Color[3])</l>
+<l>dev_display (Region_Result_Class_4)</l>
+<l>dev_set_color (Color[4])</l>
+<l>dev_display (Region_Result_Class_5)</l>
+<l>stop ()</l>
+<c>**************************************************************************************************************************************************</c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>
