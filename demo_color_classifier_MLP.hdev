@@ -171,6 +171,7 @@
 <l>create_class_mlp (numInput_mlp, numHiddenLayer_mlp, numOutput_mlp, outputFunction, featurePreprocess, 3, randomSeed, MLPHandle)</l>
 <c></c>
 <c>* Add sample feature data to the classifier</c>
+<l>Class_Label := [1, 2, 3, 4, 5]</l>
 <l>outputVector_Class_1 := [1, 0, 0, 0, 0]</l>
 <l>outputVector_Class_2 := [0, 1, 0, 0, 0]</l>
 <l>outputVector_Class_3 := [0, 0, 1, 0, 0]</l>
@@ -234,6 +235,7 @@
 <l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
 <l>disp_continue_message (WindowHandle, 'black', 'true')</l>
 <c></c>
+<c>* Extract RGB value of all pixels as validation features</c>
 <l>gen_rectangle1    (Region_Full, 0, 0, Height-1, Width-1)</l>
 <l>get_region_points (Region_Full, Rows, Columns)</l>
 <l>get_grayval (Image_R, Rows, Columns, Grayval_R)</l>
@@ -245,14 +247,58 @@
 <l>    FeatureVector_Validation[(Index*3) - 1 + 3] := Grayval_B[Index]</l>
 <l>endfor</l>
 <c></c>
-<c>* Evaluation by calculate the output of MLP using the validation's features (All pixels in the picture)</c>
+<c>* Classify the validation features</c>
+<l>Index_ClassifyResult := 0</l>
 <l>for i := 0 to |FeatureVector_Validation| - 1 - 3 by 3</l>
-<l>    tmp_feature[0] := FeatureVector_Validation[i]</l>
-<l>    tmp_feature[1] := FeatureVector_Validation[i+1]</l>
-<l>    tmp_feature[2] := FeatureVector_Validation[i+2]</l>
-<l>    tuple_real (tmp_feature, tmp_feature)</l>
-<l>    evaluate_class_mlp (MLPHandle, tmp_feature, Result)</l>
+<c>    </c>
+<c>    * Add validation feature to MLP input</c>
+<l>    for j := 0 to numInput_mlp - 1 by 1</l>
+<l>        mlp_input[j] := FeatureVector_Validation[i + j]</l>
+<l>    endfor</l>
+<l>    tuple_real (mlp_input, mlp_input)</l>
+<c>  </c>
+<c>    * Calculate the output of MLP using the validation's features (All pixels in the picture)</c>
+<l>    evaluate_class_mlp (MLPHandle, mlp_input, mlp_out)</l>
+<c>    </c>
+<c>    * Thresholding the MLP output</c>
+<l>    T := 0.5</l>
+<l>    multipleTriggerCount := 0</l>
+<l>    for j := 0 to numOutput_mlp - 1 by 1</l>
+<l>        tuple_greater (mlp_out[j], T, Greater)</l>
+<l>        if(Greater != 0)</l>
+<l>            threshold_out[j] := 1</l>
+<l>            multipleTriggerCount := multipleTriggerCount + 1</l>
+<l>        else</l>
+<l>            threshold_out[j] := 0</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    </c>
+<c>    * Classify </c>
+<l>    tuple_equal (outputVector_Class_1, threshold_out, Equal)</l>
+<l>    if (Equal)</l>
+<l>        Classification_Result[Index_ClassifyResult] := Class_Label[0]</l>
+<l>    endif</l>
+<l>    tuple_equal (outputVector_Class_2, threshold_out, Equal)</l>
+<l>    if (Equal)</l>
+<l>        Classification_Result[Index_ClassifyResult] := Class_Label[1]</l>
+<l>    endif</l>
+<l>    tuple_equal (outputVector_Class_3, threshold_out, Equal)</l>
+<l>    if (Equal)</l>
+<l>        Classification_Result[Index_ClassifyResult] := Class_Label[2]</l>
+<l>    endif</l>
+<l>    tuple_equal (outputVector_Class_4, threshold_out, Equal)</l>
+<l>    if (Equal)</l>
+<l>        Classification_Result[Index_ClassifyResult] := Class_Label[3]</l>
+<l>    endif</l>
+<l>    tuple_equal (outputVector_Class_5, threshold_out, Equal)</l>
+<l>    if (Equal)</l>
+<l>        Classification_Result[Index_ClassifyResult] := Class_Label[4]</l>
+<l>    endif</l>
+<c>    </c>
+<l>    Index_ClassifyResult := Index_ClassifyResult + 1</l>
 <l>endfor</l>
+<c></c>
+<c>* Thresholding the output of MLP</c>
 <c></c>
 <l>Message := Message + 'Completed!'</l>
 <l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
