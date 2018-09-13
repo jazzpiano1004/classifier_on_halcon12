@@ -83,7 +83,8 @@
 <c></c>
 <c></c>
 <c></c>
-<c>** Script procedure : Extract RGB value of selected region as a feature vectors for data sampling in classifier</c>
+<c>** Script procedure : Feature Extraction.</c>
+<c>*                     Extract RGB value of selected region as a feature vectors for data sampling in classifier</c>
 <c></c>
 <c>* Dimension of feature vector = 3 (RGB value)</c>
 <l>featureVectorDim := 3</l>
@@ -154,7 +155,7 @@
 <c></c>
 <c>** Script procedure : Create and train the classifier (Neural Network : MLP method)</c>
 <c></c>
-<l>Message := 'Create and train a MLP classifier ...'</l>
+<l>Message := 'Create and train a MLP classifier ... waiting'</l>
 <l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
 <c></c>
 <c>* Create data structure for MLP classifier.</c>
@@ -221,7 +222,7 @@
 <c></c>
 <l>train_class_mlp (MLPHandle, iterationLimit, 1, 0.01, Error, ErrorLog)</l>
 <c></c>
-<l>Message := Message + ' ready!'</l>
+<l>Message := 'Create and train a MLP classifier ...  ready! '</l>
 <l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
 <l>disp_continue_message (WindowHandle, 'black', 'true')</l>
 <l>stop ()</l>
@@ -273,7 +274,7 @@
 <l>        endif</l>
 <l>    endfor</l>
 <c>    </c>
-<c>    * Classify </c>
+<c>    * Classification</c>
 <l>    tuple_equal (outputVector_Class_1, threshold_out, Equal)</l>
 <l>    if (Equal)</l>
 <l>        Classification_Result[Index_ClassifyResult] := Class_Label[0]</l>
@@ -297,8 +298,6 @@
 <c>    </c>
 <l>    Index_ClassifyResult := Index_ClassifyResult + 1</l>
 <l>endfor</l>
-<c></c>
-<c>* Thresholding the output of MLP</c>
 <c></c>
 <l>Message := Message + 'Completed!'</l>
 <l>disp_message (WindowHandle, Message, 'window', 12, 12, 'black', 'true')</l>
